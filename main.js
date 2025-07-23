@@ -1,256 +1,253 @@
-// Game state
-let ropeCenter = 0; // 0 = center, negative = left, positive = right
-const ropeThreshold = 200; // pixels from center to win
-let player1Score = 0;
-let player2Score = 0;
-let player1Answered = false;
-let player2Answered = false;
-let player1Correct = false;
-let player2Correct = false;
-let player1Question = null;
-let player2Question = null;
-let winner = null;
-let roundStartTime = 0;
-let roundTimer = 8; // seconds
-let roundActive = true;
-let flashColor1 = null;
-let flashColor2 = null;
-let flashTimer1 = 0;
-let flashTimer2 = 0;
-let correctSound, wrongSound;
+// The following imports have been removed as all functions are now global.
+// 'state' is declared only once below.
 
-function generateQuestion() {
-  const a = Math.floor(Math.random() * 10) + 1;
-  const b = Math.floor(Math.random() * 10) + 1;
-  const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-  let answer;
-  if (op === '+') answer = a + b;
-  else if (op === '-') answer = a - b;
-  else answer = a * b;
-  // Generate 3 wrong answers
-  const choices = [answer];
-  while (choices.length < 4) {
-    let wrong = answer + Math.floor(Math.random() * 11) - 5;
-    if (!choices.includes(wrong)) choices.push(wrong);
-  }
-  // Shuffle
-  for (let i = choices.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [choices[i], choices[j]] = [choices[j], choices[i]];
-  }
-  return { a, b, op, answer, choices };
-}
+// UI and game layout variables (set in setup)
+let TITLE_TEXT_X, TITLE_TEXT_Y;
+let PAUSE_TEXT_X, PAUSE_TEXT_Y;
+let PLAYER1_QUESTION_X, PLAYER1_QUESTION_Y;
+let PLAYER1_CHOICE_RECT_X,
+  PLAYER1_CHOICE_RECT_Y,
+  PLAYER1_CHOICE_RECT_W,
+  PLAYER1_CHOICE_RECT_H,
+  PLAYER1_CHOICE_RECT_RADIUS;
+let PLAYER1_CHOICE_TEXT_X,
+  PLAYER1_CHOICE_TEXT_Y,
+  PLAYER1_CHOICE_GAP,
+  PLAYER1_CHOICE_AREA_Y2;
+let PLAYER2_QUESTION_X, PLAYER2_QUESTION_Y;
+let PLAYER2_CHOICE_RECT_X,
+  PLAYER2_CHOICE_RECT_Y,
+  PLAYER2_CHOICE_RECT_W,
+  PLAYER2_CHOICE_RECT_H,
+  PLAYER2_CHOICE_RECT_RADIUS;
+let PLAYER2_CHOICE_TEXT_X,
+  PLAYER2_CHOICE_TEXT_Y,
+  PLAYER2_CHOICE_GAP,
+  PLAYER2_CHOICE_AREA_Y2;
+let PAUSE_BTN_X, PAUSE_BTN_X2, PAUSE_BTN_Y, PAUSE_BTN_Y2;
 
-function resetQuestions() {
-  player1Question = generateQuestion();
-  player2Question = generateQuestion();
-  player1Answered = false;
-  player2Answered = false;
-  player1Correct = false;
-  player2Correct = false;
-  roundStartTime = performance.now();
-  roundActive = true;
-}
-
-function checkWinner() {
-  if (ropeCenter <= -ropeThreshold) winner = 'Player 1';
-  if (ropeCenter >= ropeThreshold) winner = 'Player 2';
-}
-
-function applyForces() {
-  if (!roundActive) return;
-  if (player1Answered && player2Answered) {
-    if (player1Correct && player2Correct) {
-      // Both correct, but who was faster?
-      if (player1Score < player2Score) ropeCenter -= 40;
-      else if (player2Score < player1Score) ropeCenter += 40;
-      else; // tie, no move
-    } else if (player1Correct) {
-      ropeCenter -= 60;
-    } else if (player2Correct) {
-      ropeCenter += 60;
-    } else {
-      // Both wrong, lose force
-      ropeCenter += (Math.random() < 0.5 ? -1 : 1) * 30;
-    }
-    roundActive = false;
-    setTimeout(resetQuestions, 1000);
-  }
-}
-
-function checkTimer() {
-  if (!roundActive) return;
-  const elapsed = (performance.now() - roundStartTime) / 1000;
-  if (elapsed >= roundTimer) {
-    // Timer ran out
-    roundActive = false;
-    // Apply penalty: move rope slightly toward random side
-    ropeCenter += (Math.random() < 0.5 ? -1 : 1) * 30;
-    setTimeout(resetQuestions, 1000);
-  }
-}
-
-function setupGame() {
-  ropeCenter = 0;
-  player1Score = 0;
-  player2Score = 0;
-  winner = null;
-  resetQuestions();
-}
+let state = getInitialState();
 
 function preload() {
-  // correctSound = loadSound('src/correct.wav');
-  // wrongSound = loadSound('src/wrong.wav');
+  // state.correctSound = loadSound('src/correct.wav');
+  // state.wrongSound = loadSound('src/wrong.wav');
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  setupGame();
+  // Set layout variables based on window size
+  const centerX = windowWidth / 2;
+  const centerY = windowHeight / 2;
+  setRopeCenter(centerX, centerY);
+  setTimerTextPos(centerX, 90);
+  TITLE_TEXT_X = centerX;
+  TITLE_TEXT_Y = 40;
+  PAUSE_TEXT_X = centerX;
+  PAUSE_TEXT_Y = centerY - 50;
+  PLAYER1_QUESTION_X = centerX - 200;
+  PLAYER1_QUESTION_Y = centerY + 100;
+  PLAYER1_CHOICE_RECT_X = centerX - 300;
+  PLAYER1_CHOICE_RECT_Y = centerY + 130;
+  PLAYER1_CHOICE_RECT_W = 200;
+  PLAYER1_CHOICE_RECT_H = 30;
+  PLAYER1_CHOICE_RECT_RADIUS = 8;
+  PLAYER1_CHOICE_TEXT_X = centerX - 200;
+  PLAYER1_CHOICE_TEXT_Y = centerY + 145;
+  PLAYER1_CHOICE_GAP = 40;
+  PLAYER1_CHOICE_AREA_Y2 = PLAYER1_CHOICE_RECT_Y + 4 * PLAYER1_CHOICE_GAP;
+  PLAYER2_QUESTION_X = centerX + 200;
+  PLAYER2_QUESTION_Y = centerY + 100;
+  PLAYER2_CHOICE_RECT_X = centerX + 100;
+  PLAYER2_CHOICE_RECT_Y = centerY + 130;
+  PLAYER2_CHOICE_RECT_W = 200;
+  PLAYER2_CHOICE_RECT_H = 30;
+  PLAYER2_CHOICE_RECT_RADIUS = 8;
+  PLAYER2_CHOICE_TEXT_X = centerX + 200;
+  PLAYER2_CHOICE_TEXT_Y = centerY + 145;
+  PLAYER2_CHOICE_GAP = 40;
+  PLAYER2_CHOICE_AREA_Y2 = PLAYER2_CHOICE_RECT_Y + 4 * PLAYER2_CHOICE_GAP;
+  // Move pause button below timer
+  PAUSE_BTN_X = centerX - 60;
+  PAUSE_BTN_X2 = PAUSE_BTN_X + 120;
+  PAUSE_BTN_Y = 110;
+  PAUSE_BTN_Y2 = PAUSE_BTN_Y + 40;
+  setupGame(state, resetQuestions);
 }
 
 function draw() {
   background(220);
   textAlign(CENTER, CENTER);
   textSize(32);
-  text('Tug of War Math!', 400, 40);
-  // Draw timer
-  if (roundActive) {
-    const timeLeft = Math.max(
-      0,
-      roundTimer - (performance.now() - roundStartTime) / 1000
-    ).toFixed(1);
-    textSize(28);
+  text('Tug of War Math!', TITLE_TEXT_X, TITLE_TEXT_Y);
+
+  drawPauseButton(state.paused);
+  if (state.paused) {
+    textSize(36);
     fill('orange');
-    text(`Time Left: ${timeLeft}s`, 400, 90);
-  }
-  // Draw rope
-  stroke(0);
-  strokeWeight(8);
-  line(400 + ropeCenter - 150, 300, 400 + ropeCenter + 150, 300);
-  noStroke();
-  fill('red');
-  ellipse(400 + ropeCenter - 150, 300, 40, 40); // Player 1
-  fill('blue');
-  ellipse(400 + ropeCenter + 150, 300, 40, 40); // Player 2
-  fill('black');
-  ellipse(400 + ropeCenter, 300, 30, 30); // Center knot
-  // Draw threshold lines
-  stroke('green');
-  strokeWeight(2);
-  line(400 - ropeThreshold, 250, 400 - ropeThreshold, 350);
-  line(400 + ropeThreshold, 250, 400 + ropeThreshold, 350);
-  noStroke();
-  // Show winner
-  if (winner) {
-    textSize(48);
-    fill('green');
-    text(`${winner} Wins!`, 400, 500);
-    textSize(24);
-    text('Press R to restart', 400, 540);
+    text('Paused', PAUSE_TEXT_X, PAUSE_TEXT_Y);
     return;
   }
+
+  drawTimer(state.roundActive, state.roundTimer, state.roundStartTime);
+  drawRope(state.ropeCenter);
+  if (drawWinner(state.winner)) return;
+
   // Player 1 question
   textSize(20);
   fill('red');
   text(
-    `Player 1: ${player1Question.a} ${player1Question.op} ${player1Question.b} = ?`,
-    200,
-    400
+    `Player 1: ${state.player1Question.a} ${state.player1Question.op} ${state.player1Question.b} = ?`,
+    PLAYER1_QUESTION_X,
+    PLAYER1_QUESTION_Y
   );
-  player1Question.choices.forEach((c, i) => {
+  state.player1Question.choices.forEach((c, i) => {
     if (
-      flashColor1 &&
-      flashTimer1 > 0 &&
+      state.flashColor1 &&
+      state.flashTimer1 > 0 &&
       i ===
-        player1Question.choices.findIndex((x) => x === player1Question.selected)
+        state.player1Question.choices.findIndex(
+          (x) => x === state.player1Question.selected
+        )
     ) {
-      fill(flashColor1);
+      fill(state.flashColor1);
     } else {
       fill('white');
     }
-    rect(100, 430 + i * 40, 200, 30, 8);
+    rect(
+      PLAYER1_CHOICE_RECT_X,
+      PLAYER1_CHOICE_RECT_Y + i * PLAYER1_CHOICE_GAP,
+      PLAYER1_CHOICE_RECT_W,
+      PLAYER1_CHOICE_RECT_H,
+      PLAYER1_CHOICE_RECT_RADIUS
+    );
     fill('black');
-    text(c, 200, 445 + i * 40);
+    text(
+      c,
+      PLAYER1_CHOICE_TEXT_X,
+      PLAYER1_CHOICE_TEXT_Y + i * PLAYER1_CHOICE_GAP
+    );
   });
   // Player 2 question
   fill('blue');
   text(
-    `Player 2: ${player2Question.a} ${player2Question.op} ${player2Question.b} = ?`,
-    600,
-    400
+    `Player 2: ${state.player2Question.a} ${state.player2Question.op} ${state.player2Question.b} = ?`,
+    PLAYER2_QUESTION_X,
+    PLAYER2_QUESTION_Y
   );
-  player2Question.choices.forEach((c, i) => {
+  state.player2Question.choices.forEach((c, i) => {
     if (
-      flashColor2 &&
-      flashTimer2 > 0 &&
+      state.flashColor2 &&
+      state.flashTimer2 > 0 &&
       i ===
-        player2Question.choices.findIndex((x) => x === player2Question.selected)
+        state.player2Question.choices.findIndex(
+          (x) => x === state.player2Question.selected
+        )
     ) {
-      fill(flashColor2);
+      fill(state.flashColor2);
     } else {
       fill('white');
     }
-    rect(500, 430 + i * 40, 200, 30, 8);
+    rect(
+      PLAYER2_CHOICE_RECT_X,
+      PLAYER2_CHOICE_RECT_Y + i * PLAYER2_CHOICE_GAP,
+      PLAYER2_CHOICE_RECT_W,
+      PLAYER2_CHOICE_RECT_H,
+      PLAYER2_CHOICE_RECT_RADIUS
+    );
     fill('black');
-    text(c, 600, 445 + i * 40);
+    text(
+      c,
+      PLAYER2_CHOICE_TEXT_X,
+      PLAYER2_CHOICE_TEXT_Y + i * PLAYER2_CHOICE_GAP
+    );
   });
   // Handle flash timers
-  if (flashTimer1 > 0) flashTimer1--;
-  if (flashTimer2 > 0) flashTimer2--;
-  if (flashTimer1 === 0) flashColor1 = null;
-  if (flashTimer2 === 0) flashColor2 = null;
-  checkTimer();
+  if (state.flashTimer1 > 0) state.flashTimer1--;
+  if (state.flashTimer2 > 0) state.flashTimer2--;
+  if (state.flashTimer1 === 0) state.flashColor1 = null;
+  if (state.flashTimer2 === 0) state.flashColor2 = null;
+  checkTimer(state, resetQuestions);
 }
 
 function mousePressed() {
-  if (winner || !roundActive) return;
+  // Pause/resume button area
+  if (
+    mouseX > PAUSE_BTN_X &&
+    mouseX < PAUSE_BTN_X2 &&
+    mouseY > PAUSE_BTN_Y &&
+    mouseY < PAUSE_BTN_Y2
+  ) {
+    state.paused = !state.paused;
+    // If resuming, reset roundStartTime to account for pause duration
+    if (!state.paused && state.roundActive) {
+      const elapsed = (performance.now() - state.roundStartTime) / 1000;
+      state.roundStartTime = performance.now() - elapsed * 1000;
+    }
+    return;
+  }
+
+  if (state.paused) return;
+  if (state.winner || !state.roundActive) return;
   // Player 1 area
-  if (mouseX > 100 && mouseX < 300 && mouseY > 430 && mouseY < 590) {
+  if (
+    mouseX > PLAYER1_CHOICE_RECT_X &&
+    mouseX < PLAYER1_CHOICE_RECT_X + PLAYER1_CHOICE_RECT_W &&
+    mouseY > PLAYER1_CHOICE_RECT_Y &&
+    mouseY < PLAYER1_CHOICE_AREA_Y2
+  ) {
     const idx = Math.floor((mouseY - 430) / 40);
-    if (!player1Answered) {
-      player1Answered = true;
-      player1Question.selected = player1Question.choices[idx];
-      player1Correct = player1Question.choices[idx] === player1Question.answer;
-      player1Score = performance.now();
-      if (player1Correct) {
-        flashColor1 = 'lime';
-        flashTimer1 = 20;
-        if (correctSound) correctSound.play();
+    if (!state.player1Answered) {
+      state.player1Answered = true;
+      state.player1Question.selected = state.player1Question.choices[idx];
+      state.player1Correct =
+        state.player1Question.choices[idx] === state.player1Question.answer;
+      state.player1Score = performance.now();
+      if (state.player1Correct) {
+        state.flashColor1 = 'lime';
+        state.flashTimer1 = 20;
+        if (state.correctSound) state.correctSound.play();
       } else {
-        flashColor1 = 'red';
-        flashTimer1 = 20;
-        if (wrongSound) wrongSound.play();
+        state.flashColor1 = 'red';
+        state.flashTimer1 = 20;
+        if (state.wrongSound) state.wrongSound.play();
       }
-      applyForces();
-      checkWinner();
+      applyForces(state, resetQuestions);
+      checkWinner(state);
     }
   }
   // Player 2 area
-  if (mouseX > 500 && mouseX < 700 && mouseY > 430 && mouseY < 590) {
+  if (
+    mouseX > PLAYER2_CHOICE_RECT_X &&
+    mouseX < PLAYER2_CHOICE_RECT_X + PLAYER2_CHOICE_RECT_W &&
+    mouseY > PLAYER2_CHOICE_RECT_Y &&
+    mouseY < PLAYER2_CHOICE_AREA_Y2
+  ) {
     const idx = Math.floor((mouseY - 430) / 40);
-    if (!player2Answered) {
-      player2Answered = true;
-      player2Question.selected = player2Question.choices[idx];
-      player2Correct = player2Question.choices[idx] === player2Question.answer;
-      player2Score = performance.now();
-      if (player2Correct) {
-        flashColor2 = 'lime';
-        flashTimer2 = 20;
-        if (correctSound) correctSound.play();
+    if (!state.player2Answered) {
+      state.player2Answered = true;
+      state.player2Question.selected = state.player2Question.choices[idx];
+      state.player2Correct =
+        state.player2Question.choices[idx] === state.player2Question.answer;
+      state.player2Score = performance.now();
+      if (state.player2Correct) {
+        state.flashColor2 = 'lime';
+        state.flashTimer2 = 20;
+        if (state.correctSound) state.correctSound.play();
       } else {
-        flashColor2 = 'red';
-        flashTimer2 = 20;
-        if (wrongSound) wrongSound.play();
+        state.flashColor2 = 'red';
+        state.flashTimer2 = 20;
+        if (state.wrongSound) state.wrongSound.play();
       }
-      applyForces();
-      checkWinner();
+      applyForces(state, resetQuestions);
+      checkWinner(state);
     }
   }
-  if (player1Answered && player2Answered) applyForces();
+  if (state.player1Answered && state.player2Answered)
+    applyForces(state, resetQuestions);
 }
 
 function keyPressed() {
-  if (winner && (key === 'r' || key === 'R')) {
-    setupGame();
+  if (state.winner && (key === 'r' || key === 'R')) {
+    setupGame(state, resetQuestions);
   }
 }
