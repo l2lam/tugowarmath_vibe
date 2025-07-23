@@ -29,8 +29,8 @@ let PAUSE_BTN_X, PAUSE_BTN_X2, PAUSE_BTN_Y, PAUSE_BTN_Y2;
 let state = getInitialState();
 
 function preload() {
-  // state.correctSound = loadSound('src/correct.wav');
-  // state.wrongSound = loadSound('src/wrong.wav');
+  state.correctSound = loadSound('correct.wav');
+  state.wrongSound = loadSound('wrong.wav');
 }
 
 function setup() {
@@ -74,6 +74,44 @@ function setup() {
   setupGame(state, resetQuestions);
 }
 
+function drawPlayerQuestion(
+  player,
+  color,
+  question,
+  flashColor,
+  flashTimer,
+  rectX,
+  rectY,
+  rectW,
+  rectH,
+  rectRadius,
+  textX,
+  textY,
+  gap
+) {
+  textSize(20);
+  fill(color);
+  text(
+    `${player}: ${question.a} ${question.op} ${question.b} = ?`,
+    textX,
+    rectY - 30
+  );
+  question.choices.forEach((c, i) => {
+    if (
+      flashColor &&
+      flashTimer > 0 &&
+      i === question.choices.findIndex((x) => x === question.selected)
+    ) {
+      fill(flashColor);
+    } else {
+      fill('white');
+    }
+    rect(rectX, rectY + i * gap, rectW, rectH, rectRadius);
+    fill('black');
+    text(c, textX, textY + i * gap);
+  });
+}
+
 function draw() {
   background(220);
   textAlign(CENTER, CENTER);
@@ -92,81 +130,122 @@ function draw() {
   drawRope(state.ropeCenter);
   if (drawWinner(state.winner)) return;
 
-  // Player 1 question
-  textSize(20);
-  fill('red');
-  text(
-    `Player 1: ${state.player1Question.a} ${state.player1Question.op} ${state.player1Question.b} = ?`,
-    PLAYER1_QUESTION_X,
-    PLAYER1_QUESTION_Y
+  drawPlayerQuestion(
+    'Player 1',
+    'red',
+    state.player1Question,
+    state.flashColor1,
+    state.flashTimer1,
+    PLAYER1_CHOICE_RECT_X,
+    PLAYER1_CHOICE_RECT_Y,
+    PLAYER1_CHOICE_RECT_W,
+    PLAYER1_CHOICE_RECT_H,
+    PLAYER1_CHOICE_RECT_RADIUS,
+    PLAYER1_CHOICE_TEXT_X,
+    PLAYER1_CHOICE_TEXT_Y,
+    PLAYER1_CHOICE_GAP
   );
-  state.player1Question.choices.forEach((c, i) => {
-    if (
-      state.flashColor1 &&
-      state.flashTimer1 > 0 &&
-      i ===
-        state.player1Question.choices.findIndex(
-          (x) => x === state.player1Question.selected
-        )
-    ) {
-      fill(state.flashColor1);
-    } else {
-      fill('white');
-    }
-    rect(
-      PLAYER1_CHOICE_RECT_X,
-      PLAYER1_CHOICE_RECT_Y + i * PLAYER1_CHOICE_GAP,
-      PLAYER1_CHOICE_RECT_W,
-      PLAYER1_CHOICE_RECT_H,
-      PLAYER1_CHOICE_RECT_RADIUS
-    );
-    fill('black');
-    text(
-      c,
-      PLAYER1_CHOICE_TEXT_X,
-      PLAYER1_CHOICE_TEXT_Y + i * PLAYER1_CHOICE_GAP
-    );
-  });
-  // Player 2 question
-  fill('blue');
-  text(
-    `Player 2: ${state.player2Question.a} ${state.player2Question.op} ${state.player2Question.b} = ?`,
-    PLAYER2_QUESTION_X,
-    PLAYER2_QUESTION_Y
+  drawPlayerQuestion(
+    'Player 2',
+    'blue',
+    state.player2Question,
+    state.flashColor2,
+    state.flashTimer2,
+    PLAYER2_CHOICE_RECT_X,
+    PLAYER2_CHOICE_RECT_Y,
+    PLAYER2_CHOICE_RECT_W,
+    PLAYER2_CHOICE_RECT_H,
+    PLAYER2_CHOICE_RECT_RADIUS,
+    PLAYER2_CHOICE_TEXT_X,
+    PLAYER2_CHOICE_TEXT_Y,
+    PLAYER2_CHOICE_GAP
   );
-  state.player2Question.choices.forEach((c, i) => {
-    if (
-      state.flashColor2 &&
-      state.flashTimer2 > 0 &&
-      i ===
-        state.player2Question.choices.findIndex(
-          (x) => x === state.player2Question.selected
-        )
-    ) {
-      fill(state.flashColor2);
-    } else {
-      fill('white');
-    }
-    rect(
-      PLAYER2_CHOICE_RECT_X,
-      PLAYER2_CHOICE_RECT_Y + i * PLAYER2_CHOICE_GAP,
-      PLAYER2_CHOICE_RECT_W,
-      PLAYER2_CHOICE_RECT_H,
-      PLAYER2_CHOICE_RECT_RADIUS
-    );
-    fill('black');
-    text(
-      c,
-      PLAYER2_CHOICE_TEXT_X,
-      PLAYER2_CHOICE_TEXT_Y + i * PLAYER2_CHOICE_GAP
-    );
-  });
+
   // Handle flash timers
   if (state.flashTimer1 > 0) state.flashTimer1--;
   if (state.flashTimer2 > 0) state.flashTimer2--;
   if (state.flashTimer1 === 0) state.flashColor1 = null;
   if (state.flashTimer2 === 0) state.flashColor2 = null;
   checkTimer(state, resetQuestions);
+}
+
+function handlePauseButtonClick() {
+  state.paused = !state.paused;
+  // If resuming, reset roundStartTime to account for pause duration
+  if (!state.paused && state.roundActive) {
+    const elapsed = (performance.now() - state.roundStartTime) / 1000;
+    state.roundStartTime = performance.now() - elapsed * 1000;
+  }
+}
+
+function handlePlayerAnswer(player) {
+  let rectX,
+    rectW,
+    rectY,
+    areaY2,
+    question,
+    answered,
+    correct,
+    score,
+    flashColor,
+    flashTimer,
+    correctSound,
+    wrongSound,
+    gap;
+  if (player === 1) {
+    rectX = PLAYER1_CHOICE_RECT_X;
+    rectW = PLAYER1_CHOICE_RECT_W;
+    rectY = PLAYER1_CHOICE_RECT_Y;
+    areaY2 = PLAYER1_CHOICE_AREA_Y2;
+    question = state.player1Question;
+    answered = 'player1Answered';
+    correct = 'player1Correct';
+    score = 'player1Score';
+    flashColor = 'flashColor1';
+    flashTimer = 'flashTimer1';
+    correctSound = 'correctSound';
+    wrongSound = 'wrongSound';
+    gap = PLAYER1_CHOICE_GAP;
+  } else {
+    rectX = PLAYER2_CHOICE_RECT_X;
+    rectW = PLAYER2_CHOICE_RECT_W;
+    rectY = PLAYER2_CHOICE_RECT_Y;
+    areaY2 = PLAYER2_CHOICE_AREA_Y2;
+    question = state.player2Question;
+    answered = 'player2Answered';
+    correct = 'player2Correct';
+    score = 'player2Score';
+    flashColor = 'flashColor2';
+    flashTimer = 'flashTimer2';
+    correctSound = 'correctSound';
+    wrongSound = 'wrongSound';
+    gap = PLAYER2_CHOICE_GAP;
+  }
+  if (
+    mouseX > rectX &&
+    mouseX < rectX + rectW &&
+    mouseY > rectY &&
+    mouseY < areaY2
+  ) {
+    const idx = Math.floor((mouseY - rectY) / gap);
+    if (idx >= 0 && idx < question.choices.length && !state[answered]) {
+      state[answered] = true;
+      question.selected = question.choices[idx];
+      state[correct] = question.choices[idx] === question.answer;
+      state[score] = performance.now();
+      if (state[correct]) {
+        state[flashColor] = 'lime';
+        state[flashTimer] = 20;
+        if (state[correctSound]) state[correctSound].play();
+      } else {
+        state[flashColor] = 'red';
+        state[flashTimer] = 20;
+        if (state[wrongSound]) state[wrongSound].play();
+      }
+      applyForces(state, resetQuestions);
+      checkWinner(state);
+    }
+  }
 }
 
 function mousePressed() {
@@ -177,71 +256,14 @@ function mousePressed() {
     mouseY > PAUSE_BTN_Y &&
     mouseY < PAUSE_BTN_Y2
   ) {
-    state.paused = !state.paused;
-    // If resuming, reset roundStartTime to account for pause duration
-    if (!state.paused && state.roundActive) {
-      const elapsed = (performance.now() - state.roundStartTime) / 1000;
-      state.roundStartTime = performance.now() - elapsed * 1000;
-    }
+    handlePauseButtonClick();
     return;
   }
 
   if (state.paused) return;
   if (state.winner || !state.roundActive) return;
-  // Player 1 area
-  if (
-    mouseX > PLAYER1_CHOICE_RECT_X &&
-    mouseX < PLAYER1_CHOICE_RECT_X + PLAYER1_CHOICE_RECT_W &&
-    mouseY > PLAYER1_CHOICE_RECT_Y &&
-    mouseY < PLAYER1_CHOICE_AREA_Y2
-  ) {
-    const idx = Math.floor((mouseY - 430) / 40);
-    if (!state.player1Answered) {
-      state.player1Answered = true;
-      state.player1Question.selected = state.player1Question.choices[idx];
-      state.player1Correct =
-        state.player1Question.choices[idx] === state.player1Question.answer;
-      state.player1Score = performance.now();
-      if (state.player1Correct) {
-        state.flashColor1 = 'lime';
-        state.flashTimer1 = 20;
-        if (state.correctSound) state.correctSound.play();
-      } else {
-        state.flashColor1 = 'red';
-        state.flashTimer1 = 20;
-        if (state.wrongSound) state.wrongSound.play();
-      }
-      applyForces(state, resetQuestions);
-      checkWinner(state);
-    }
-  }
-  // Player 2 area
-  if (
-    mouseX > PLAYER2_CHOICE_RECT_X &&
-    mouseX < PLAYER2_CHOICE_RECT_X + PLAYER2_CHOICE_RECT_W &&
-    mouseY > PLAYER2_CHOICE_RECT_Y &&
-    mouseY < PLAYER2_CHOICE_AREA_Y2
-  ) {
-    const idx = Math.floor((mouseY - 430) / 40);
-    if (!state.player2Answered) {
-      state.player2Answered = true;
-      state.player2Question.selected = state.player2Question.choices[idx];
-      state.player2Correct =
-        state.player2Question.choices[idx] === state.player2Question.answer;
-      state.player2Score = performance.now();
-      if (state.player2Correct) {
-        state.flashColor2 = 'lime';
-        state.flashTimer2 = 20;
-        if (state.correctSound) state.correctSound.play();
-      } else {
-        state.flashColor2 = 'red';
-        state.flashTimer2 = 20;
-        if (state.wrongSound) state.wrongSound.play();
-      }
-      applyForces(state, resetQuestions);
-      checkWinner(state);
-    }
-  }
+  handlePlayerAnswer(1);
+  handlePlayerAnswer(2);
   if (state.player1Answered && state.player2Answered)
     applyForces(state, resetQuestions);
 }
