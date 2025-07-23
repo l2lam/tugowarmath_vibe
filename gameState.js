@@ -45,20 +45,18 @@ function checkWinner(state) {
 
 function applyForces(state, resetQuestionsCb) {
   if (!state.roundActive) return;
-  if (state.player1Answered && state.player2Answered) {
-    if (state.player1Correct && state.player2Correct) {
-      if (state.player1Score < state.player2Score) state.ropeCenter -= 40;
-      else if (state.player2Score < state.player1Score) state.ropeCenter += 40;
-    } else if (state.player1Correct) {
-      state.ropeCenter -= 60;
-    } else if (state.player2Correct) {
-      state.ropeCenter += 60;
-    } else {
-      state.ropeCenter += (Math.random() < 0.5 ? -1 : 1) * 30;
-    }
-    state.roundActive = false;
-    setTimeout(() => resetQuestionsCb(state), 1000);
+  if (state.player1Answered && state.player1Correct) {
+    state.ropeCenter -= 60;
+  } else if (state.player2Answered && state.player2Correct) {
+    state.ropeCenter += 60;
+  } else if (state.player1Answered && state.player2Answered) {
+    // both players answered, but neither correct, apply random force
+    //   state.ropeCenter += (Math.random() < 0.5 ? -1 : 1) * 30;
+  } else {
+    return;
   }
+  state.roundActive = false;
+  setTimeout(() => resetQuestionsCb(state), 1000);
 }
 
 function checkTimer(state, resetQuestionsCb) {
