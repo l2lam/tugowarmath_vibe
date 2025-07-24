@@ -178,7 +178,7 @@ function handlePauseButtonClick() {
   }
 }
 
-function handlePlayerAnswer(player) {
+function handlePlayerAnswer(player, x, y) {
   let rectX,
     rectW,
     rectY,
@@ -221,13 +221,8 @@ function handlePlayerAnswer(player) {
     wrongSound = 'wrongSound';
     gap = PLAYER2_CHOICE_GAP;
   }
-  if (
-    mouseX > rectX &&
-    mouseX < rectX + rectW &&
-    mouseY > rectY &&
-    mouseY < areaY2
-  ) {
-    const idx = Math.floor((mouseY - rectY) / gap);
+  if (x > rectX && x < rectX + rectW && y > rectY && y < areaY2) {
+    const idx = Math.floor((y - rectY) / gap);
     if (idx >= 0 && idx < question.choices.length && !state[answered]) {
       state[answered] = true;
       question.selected = question.choices[idx];
@@ -248,13 +243,13 @@ function handlePlayerAnswer(player) {
   }
 }
 
-function mousePressed() {
+function processInput(x, y) {
   // Pause/resume button area
   if (
-    mouseX > PAUSE_BTN_X &&
-    mouseX < PAUSE_BTN_X2 &&
-    mouseY > PAUSE_BTN_Y &&
-    mouseY < PAUSE_BTN_Y2
+    x > PAUSE_BTN_X &&
+    x < PAUSE_BTN_X2 &&
+    y > PAUSE_BTN_Y &&
+    y < PAUSE_BTN_Y2
   ) {
     handlePauseButtonClick();
     return;
@@ -262,10 +257,25 @@ function mousePressed() {
 
   if (state.paused) return;
   if (state.winner || !state.roundActive) return;
-  handlePlayerAnswer(1);
-  handlePlayerAnswer(2);
+  if (!state.player1Answered) handlePlayerAnswer(1, x, y);
+  if (!state.player2Answered) handlePlayerAnswer(2, x, y);
   if (state.player1Answered && state.player2Answered)
     applyForces(state, resetQuestions);
+}
+
+function mousePressed() {
+  processInput(mouseX, mouseY);
+}
+
+function touchStarted() {
+  if (touches && touches.length > 0) {
+    for (let i = 0; i < touches.length; i++) {
+      processInput(touches[i].x, touches[i].y);
+    }
+  } else {
+    processInput(mouseX, mouseY);
+  }
+  return false;
 }
 
 function keyPressed() {
