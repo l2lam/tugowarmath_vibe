@@ -1,3 +1,89 @@
+// --- Walk cycle animation variables ---
+let walkCycleImg;
+const WALK_FRAME_COUNT = 8; // Adjust if your sprite sheet has a different number of frames
+const WALK_FRAME_W = 1038 / 8 - 7; //64;    // Width of a single frame (adjust to your sprite sheet)
+const WALK_FRAME_H = 298 / 2 + 15; //128;   // Height of a single frame (adjust to your sprite sheet)
+let walkFrameIdx1 = 0;
+let walkFrameIdx2 = 0;
+let walkFrameTimer1 = 0;
+let walkFrameTimer2 = 0;
+const WALK_FRAME_SPEED = 7; // Lower is faster
+const WALK_FRAME_W_OFFSET = 70;
+const WALK_FRAME_H_OFFSET = 65;
+
+// Call this in preload() in main.js
+function preloadWalkCycle() {
+  walkCycleImg = loadImage('walkcycle.png');
+}
+
+// Call this in setup() in main.js to reset animation
+function resetWalkCycle() {
+  walkFrameIdx1 = 0;
+  walkFrameIdx2 = 0;
+  walkFrameTimer1 = 0;
+  walkFrameTimer2 = 0;
+}
+
+// Call this in draw() in main.js to update animation
+function updateWalkCycle(player1Moving, player2Moving) {
+  if (player1Moving) {
+    walkFrameTimer1++;
+    if (walkFrameTimer1 >= WALK_FRAME_SPEED) {
+      walkFrameIdx1 = (walkFrameIdx1 - 1) % WALK_FRAME_COUNT;
+      if (walkFrameIdx1 < 0) walkFrameIdx1 += WALK_FRAME_COUNT; // Ensure non-negative index
+      walkFrameTimer1 = 0;
+    }
+  } else {
+    walkFrameIdx1 = 0;
+    walkFrameTimer1 = 0;
+  }
+  if (player2Moving) {
+    walkFrameTimer2++;
+    if (walkFrameTimer2 >= WALK_FRAME_SPEED) {
+      walkFrameIdx2 = (walkFrameIdx2 - 1) % WALK_FRAME_COUNT;
+      if (walkFrameIdx2 < 0) walkFrameIdx2 += WALK_FRAME_COUNT; // Ensure non-negative index
+      walkFrameTimer2 = 0;
+    }
+  } else {
+    walkFrameIdx2 = 0;
+    walkFrameTimer2 = 0;
+  }
+}
+
+// Draws the animated person at the given position, facing left or right
+function drawWalker(x, y, facingLeft, frameIdx) {
+  if (!walkCycleImg) return;
+  push();
+  translate(x, y);
+  if (facingLeft) {
+    scale(-0.5, 0.5);
+    image(
+      walkCycleImg,
+      -WALK_FRAME_W / 2,
+      -WALK_FRAME_H / 2,
+      WALK_FRAME_W,
+      WALK_FRAME_H,
+      frameIdx * WALK_FRAME_W + WALK_FRAME_W_OFFSET,
+      WALK_FRAME_H_OFFSET,
+      WALK_FRAME_W,
+      WALK_FRAME_H
+    );
+  } else {
+    scale(0.5, 0.5);
+    image(
+      walkCycleImg,
+      -WALK_FRAME_W / 2,
+      -WALK_FRAME_H / 2,
+      WALK_FRAME_W,
+      WALK_FRAME_H,
+      frameIdx * WALK_FRAME_W + WALK_FRAME_W_OFFSET,
+      WALK_FRAME_H_OFFSET,
+      WALK_FRAME_W,
+      WALK_FRAME_H
+    );
+  }
+  pop();
+}
 // UI rendering and event handling helpers for the tug-of-war game
 
 let ROPE_X = 400;
@@ -8,7 +94,7 @@ function setRopeCenter(x, y) {
   ROPE_Y = y;
 }
 let ROPE_HALF_LENGTH = 150;
-const PLAYER_RADIUS = 40;
+const PLAYER_RADIUS = WALK_FRAME_H / 2 + 15; // Adjusted to match the height of the walk cycle sprite
 const KNOT_RADIUS = 30;
 const THRESHOLD_LINE_OFFSET1 = -50;
 const THRESHOLD_LINE_OFFSET2 = 50;
@@ -54,20 +140,21 @@ function drawRope(ropeCenter) {
     ROPE_Y
   );
   noStroke();
-  fill('red');
-  ellipse(
+  // Animate player 1 (left, facing right)
+  drawWalker(
     ROPE_X + ropeCenter - ROPE_HALF_LENGTH,
-    ROPE_Y,
-    PLAYER_RADIUS,
-    PLAYER_RADIUS
-  ); // Player 1
-  fill('blue');
-  ellipse(
+    ROPE_Y + PLAYER_RADIUS / 2 - 50,
+    false,
+    walkFrameIdx1
+  );
+  // Animate player 2 (right, facing left)
+  drawWalker(
     ROPE_X + ropeCenter + ROPE_HALF_LENGTH,
-    ROPE_Y,
-    PLAYER_RADIUS,
-    PLAYER_RADIUS
-  ); // Player 2
+    ROPE_Y + PLAYER_RADIUS / 2 - 50,
+    true,
+    walkFrameIdx2
+  );
+  updateWalkCycle(true, true);
   fill('black');
   ellipse(ROPE_X + ropeCenter, ROPE_Y, KNOT_RADIUS, KNOT_RADIUS); // Center knot
   // Draw threshold lines

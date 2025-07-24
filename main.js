@@ -31,6 +31,7 @@ let state = getInitialState();
 function preload() {
   state.correctSound = loadSound('correct.wav');
   state.wrongSound = loadSound('wrong.wav');
+  preloadWalkCycle();
 }
 
 function setup() {
