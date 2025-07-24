@@ -29,10 +29,20 @@ function setTimerTextPos(x, y) {
   TIMER_TEXT_X = x;
   TIMER_TEXT_Y = y;
 }
-const WINNER_TEXT_X = 400;
-const WINNER_TEXT_Y = 500;
-const RESTART_TEXT_X = 400;
-const RESTART_TEXT_Y = 540;
+let WINNER_TEXT_X = 400;
+let WINNER_TEXT_Y = 500;
+let RESTART_TEXT_X = 400;
+let RESTART_TEXT_Y = 540;
+
+function setWinnerTextPos(x, y) {
+  WINNER_TEXT_X = x;
+  WINNER_TEXT_Y = y;
+}
+
+function setRestartTextPos(x, y) {
+  RESTART_TEXT_X = x;
+  RESTART_TEXT_Y = y;
+}
 
 function drawRope(ropeCenter) {
   stroke(0);

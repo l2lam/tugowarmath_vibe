@@ -40,6 +40,8 @@ function setup() {
   const centerY = windowHeight / 2;
   setRopeCenter(centerX, centerY);
   setTimerTextPos(centerX, 90);
+  setWinnerTextPos(centerX, centerY + 200);
+  setRestartTextPos(centerX, centerY + 240);
   TITLE_TEXT_X = centerX;
   TITLE_TEXT_Y = 40;
   PAUSE_TEXT_X = centerX;
@@ -118,15 +120,19 @@ function draw() {
   textSize(32);
   text('Tug of War Math!', TITLE_TEXT_X, TITLE_TEXT_Y);
 
-  drawPauseButton(state.paused);
-  if (state.paused) {
-    textSize(36);
-    fill('orange');
-    text('Paused', PAUSE_TEXT_X, PAUSE_TEXT_Y);
-    return;
+  if (!state.winner) {
+    drawPauseButton(state.paused);
+    if (state.paused) {
+      textSize(36);
+      fill('orange');
+      text('Paused', PAUSE_TEXT_X, PAUSE_TEXT_Y);
+      return;
+    }
   }
 
-  drawTimer(state.roundActive, state.roundTimer, state.roundStartTime);
+  if (!state.winner) {
+    drawTimer(state.roundActive, state.roundTimer, state.roundStartTime);
+  }
   drawRope(state.ropeCenter);
   if (drawWinner(state.winner)) return;
 
@@ -166,7 +172,9 @@ function draw() {
   if (state.flashTimer2 > 0) state.flashTimer2--;
   if (state.flashTimer1 === 0) state.flashColor1 = null;
   if (state.flashTimer2 === 0) state.flashColor2 = null;
-  checkTimer(state, resetQuestions);
+  if (!state.winner) {
+    checkTimer(state, resetQuestions);
+  }
 }
 
 function handlePauseButtonClick() {
